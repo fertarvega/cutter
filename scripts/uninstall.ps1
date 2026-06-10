@@ -22,10 +22,12 @@ Write-Host '1/4 Cerrando Cutter...'
 Get-Process Cutter -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Milliseconds 300
 
-# 2. Quitar arranque automatico
-Write-Host '2/4 Quitando arranque con Windows...'
+# 2. Quitar accesos directos (arranque + carpeta privada)
+Write-Host '2/4 Quitando accesos directos...'
 $ShortcutPath = Join-Path ([Environment]::GetFolderPath('Startup')) 'Cutter.lnk'
 if (Test-Path $ShortcutPath) { Remove-Item $ShortcutPath -Force }
+$VaultLnkPath = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Cutter privado.lnk'
+if (Test-Path $VaultLnkPath) { Remove-Item $VaultLnkPath -Force }
 
 # 3. Restaurar Impr Pant -> Herramienta de recortes
 Write-Host '3/4 Restaurando Impr Pant a Windows...'

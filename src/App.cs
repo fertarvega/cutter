@@ -14,7 +14,30 @@ public static class Program
             Environment.Exit(SelfTest.Run());
             return;
         }
+        if (args.Length > 0 && args[0] == "--vault")
+        {
+            RunVaultOnly();
+            return;
+        }
         var app = new App();
+        app.Run();
+    }
+
+    /// <summary>
+    /// Modo independiente: abre solo el visor de la carpeta privada y termina
+    /// al cerrarlo. No instala hook ni icono. Sirve como acceso directo a lo
+    /// privado sin depender del icono de la bandeja.
+    /// </summary>
+    private static void RunVaultOnly()
+    {
+        var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+        app.Startup += (_, _) =>
+        {
+            Storage.EnsureDirs();
+            var w = VaultViewerWindow.Open();
+            if (w is null) { app.Shutdown(); return; }
+            w.Closed += (_, _) => app.Shutdown();
+        };
         app.Run();
     }
 }
@@ -79,12 +102,37 @@ public sealed class App : Application
 
         _tray = new WinForms.NotifyIcon
         {
-            Icon = SystemIcons.Application,
+            Icon = CreateIcon(),
             Visible = true,
-            Text = "Cutter — Impr Pant: captura · doble Impr Pant: GIF",
+            Text = "Cutter — Impr Pant: captura · doble Impr Pant: GIF · doble clic: privado",
             ContextMenuStrip = menu
         };
-        _tray.DoubleClick += (_, _) => DoScreenshot();
+        _tray.DoubleClick += (_, _) => VaultViewerWindow.Open();
+
+        Notify("Cutter activo",
+            "El icono está en la bandeja (pulsa la flecha ^ si no lo ves). " +
+            "Doble clic en el icono = carpeta privada.");
+    }
+
+    /// <summary>Icono propio para reconocerlo en la bandeja (una 'C' sobre círculo azul).</summary>
+    private static Icon CreateIcon()
+    {
+        using var bmp = new Bitmap(32, 32);
+        using (var g = Graphics.FromImage(bmp))
+        {
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            g.Clear(System.Drawing.Color.Transparent);
+            using var bg = new SolidBrush(System.Drawing.Color.FromArgb(0x2D, 0x7D, 0xD2));
+            g.FillEllipse(bg, 1, 1, 30, 30);
+            using var font = new Font("Segoe UI", 18, System.Drawing.FontStyle.Bold, GraphicsUnit.Pixel);
+            using var sf = new StringFormat
+            {
+                Alignment = StringAlignment.Center,
+                LineAlignment = StringAlignment.Center
+            };
+            g.DrawString("C", font, System.Drawing.Brushes.White, new RectangleF(0, 0, 32, 32), sf);
+        }
+        return Icon.FromHandle(bmp.GetHicon());
     }
 
     private void InstallHook()

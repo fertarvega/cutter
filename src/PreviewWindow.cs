@@ -21,6 +21,8 @@ public sealed class PreviewWindow : Window
 
     private readonly TextBox _ocrBox;
     private readonly TextBlock _status;
+    private readonly Image _img;
+    private GifPlayer? _gif;
 
     public PreviewWindow(BitmapSource preview, byte[] bytes, CaptureKind kind)
     {
@@ -42,7 +44,7 @@ public sealed class PreviewWindow : Window
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
         // Vista previa
-        var img = new Image
+        _img = new Image
         {
             Source = preview,
             Stretch = Stretch.Uniform,
@@ -52,7 +54,7 @@ public sealed class PreviewWindow : Window
         var scroll = new Border
         {
             Background = new SolidColorBrush(Color.FromRgb(0x20, 0x20, 0x20)),
-            Child = img
+            Child = _img
         };
         Grid.SetRow(scroll, 0);
         grid.Children.Add(scroll);
@@ -95,6 +97,14 @@ public sealed class PreviewWindow : Window
         grid.Children.Add(bar);
 
         Content = grid;
+
+        if (kind == CaptureKind.Gif)
+        {
+            _gif = new GifPlayer(_img);
+            _gif.Play(_bytes);
+        }
+
+        Closed += (_, _) => _gif?.Stop();
     }
 
     private static Button MakeButton(string text, RoutedEventHandler onClick)

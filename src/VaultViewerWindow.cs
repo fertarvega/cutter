@@ -25,9 +25,11 @@ public sealed class VaultViewerWindow : Window
     };
     private readonly TextBlock _status = new() { Margin = new Thickness(0, 6, 0, 0), TextWrapping = TextWrapping.Wrap };
     private readonly List<string> _tempFiles = new();
+    private readonly GifPlayer _gif;
 
     private VaultViewerWindow()
     {
+        _gif = new GifPlayer(_image);
         Title = "Cutter — Carpeta privada 🔒";
         Width = 960;
         Height = 640;
@@ -82,24 +84,29 @@ public sealed class VaultViewerWindow : Window
         root.Children.Add(bar);
 
         Content = root;
-        Closed += (_, _) => CleanupTemp();
+        Closed += (_, _) => { _gif.Stop(); CleanupTemp(); };
     }
 
-    /// <summary>Abre el visor tras pedir la contraseña. No-op si no hay bóveda o se cancela.</summary>
-    public static void Open(Window? owner = null)
+    /// <summary>
+    /// Abre el visor tras pedir la contraseña. Devuelve la ventana mostrada,
+    /// o null si no hay bóveda o se cancela.
+    /// </summary>
+    public static VaultViewerWindow? Open(Window? owner = null)
     {
         if (!PrivateVault.Instance.IsConfigured)
         {
             MessageBox.Show("Aún no hay carpeta privada. Guarda algo como privado primero.",
                 "Cutter", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
+            return null;
         }
-        if (!PasswordDialog.EnsureUnlocked(owner)) return;
+        if (!PasswordDialog.EnsureUnlocked(owner)) return null;
 
         var w = new VaultViewerWindow();
         if (owner is not null) w.Owner = owner;
         w.Refresh();
         w.Show();
+        w.Activate();
+        return w;
     }
 
     private static Button MakeButton(string text, RoutedEventHandler onClick)
@@ -135,6 +142,7 @@ public sealed class VaultViewerWindow : Window
 
         try
         {
+            _gif.Stop(); // detiene cualquier GIF anterior antes de cambiar de selección
             byte[] data = PrivateVault.Instance.Open(enc);
             string ext = InnerExt(enc);
 
@@ -144,7 +152,12 @@ public sealed class VaultViewerWindow : Window
                 _text.Visibility = Visibility.Visible;
                 _image.Source = null;
             }
-            else // imagen o gif: muestra el (primer) fotograma
+            else if (ext == ".gif")
+            {
+                _gif.Play(data); // se reproduce en bucle dentro del visor
+                _text.Visibility = Visibility.Collapsed;
+            }
+            else // imagen estática
             {
                 var bmp = new BitmapImage();
                 using (var ms = new MemoryStream(data))
@@ -220,6 +233,7 @@ public sealed class VaultViewerWindow : Window
                 MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
             return;
 
+        _gif.Stop();
         File.Delete(enc);
         _image.Source = null;
         _text.Visibility = Visibility.Collapsed;

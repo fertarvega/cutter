@@ -7,7 +7,7 @@ namespace Cutter;
 /// <summary>Graba fotogramas de una región a intervalos fijos, con marcas de tiempo reales.</summary>
 public sealed class GifRecorder
 {
-    public const int FrameDelayMs = 80; // objetivo ~12.5 fps
+    public const int FrameDelayMs = 33; // objetivo ~30 fps
     private const int MaxSeconds = 30;   // tope de seguridad
 
     private readonly DispatcherTimer _timer;
