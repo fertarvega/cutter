@@ -35,7 +35,7 @@ public static class Program
         {
             Storage.EnsureDirs();
             Theme.Apply(AppSettings.Load().Theme);
-            var w = VaultViewerWindow.Open();
+            var w = MediaViewerWindow.OpenPrivate();
             if (w is null) { app.Shutdown(); return; }
             w.Closed += (_, _) => app.Shutdown();
         };
@@ -86,7 +86,8 @@ public sealed class App : Application
         menu.Items.Add("Capturar pantalla (región)", null, (_, _) => DoScreenshot());
         menu.Items.Add("Grabar / parar GIF (región)", null, (_, _) => ToggleGif());
         menu.Items.Add(new WinForms.ToolStripSeparator());
-        menu.Items.Add("Ver carpeta privada 🔒", null, (_, _) => VaultViewerWindow.Open());
+        menu.Items.Add("Ver carpeta pública", null, (_, _) => MediaViewerWindow.OpenPublic());
+        menu.Items.Add("Ver carpeta privada 🔒", null, (_, _) => MediaViewerWindow.OpenPrivate());
         menu.Items.Add("Bloquear carpeta privada", null, (_, _) =>
         {
             PrivateVault.Instance.Lock();
@@ -110,7 +111,7 @@ public sealed class App : Application
             Text = "Cutter — Impr Pant: captura · doble Impr Pant: GIF · doble clic: privado",
             ContextMenuStrip = menu
         };
-        _tray.DoubleClick += (_, _) => VaultViewerWindow.Open();
+        _tray.DoubleClick += (_, _) => MediaViewerWindow.OpenPrivate();
 
         Notify("Cutter activo",
             "El icono está en la bandeja (pulsa la flecha ^ si no lo ves). " +

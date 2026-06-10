@@ -22,8 +22,10 @@ carpeta privada cifrada que se sincroniza a OneDrive.
   abrir carpeta, **Configuración**, devolver Impr Pant a Windows, salir).
   Doble clic en el icono = abrir carpeta privada.
 - **Tema oscuro** por defecto (claro opcional en Configuración, se recuerda).
-- En el visor de la carpeta privada puedes hacer **OCR de una imagen guardada**
-  más tarde (botón "OCR → privado") y el texto se guarda cifrado.
+- Hay **visor de carpeta pública y privada** (mismo visor): listar, previsualizar
+  imagen/GIF/texto, abrir con la app del sistema y hacer **OCR de una imagen
+  guardada** más tarde (botón "OCR → texto"). En privado el texto se guarda
+  cifrado; en pública, en claro.
 
 > El doble Impr Pant añade ~350 ms de espera a la captura simple (hace falta
 > para distinguir una pulsación de dos).
