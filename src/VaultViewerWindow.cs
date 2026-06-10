@@ -75,6 +75,7 @@ public sealed class VaultViewerWindow : Window
             Margin = new Thickness(0, 10, 0, 0)
         };
         bar.Children.Add(MakeButton("Abrir con app del sistema", (_, _) => OpenExternal()));
+        bar.Children.Add(MakeButton("OCR → privado", (_, _) => RunOcr()));
         bar.Children.Add(MakeButton("Exportar descifrado…", (_, _) => Export()));
         bar.Children.Add(MakeButton("Eliminar", (_, _) => DeleteSelected()));
         bar.Children.Add(MakeButton("Cerrar", (_, _) => Close()));
@@ -202,6 +203,52 @@ public sealed class VaultViewerWindow : Window
         {
             _status.Text = "Error al abrir: " + ex.Message;
         }
+    }
+
+    /// <summary>
+    /// OCR sobre la imagen privada seleccionada y guarda el texto cifrado en la
+    /// misma carpeta (por si no se extrajo en el momento de la captura).
+    /// </summary>
+    private async void RunOcr()
+    {
+        string? enc = SelectedPath();
+        if (enc is null) { _status.Text = "Selecciona un archivo."; return; }
+
+        string ext = InnerExt(enc);
+        if (ext is not (".png" or ".jpg" or ".jpeg" or ".bmp"))
+        {
+            _status.Text = "OCR solo disponible para imágenes.";
+            return;
+        }
+
+        _status.Text = "Reconociendo texto…";
+        string text;
+        try
+        {
+            byte[] img = PrivateVault.Instance.Open(enc);
+            text = await Ocr.RecognizeAsync(img);
+        }
+        catch (Exception ex)
+        {
+            _status.Text = "Error OCR: " + ex.Message;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            _status.Text = "No se detectó texto en la imagen.";
+            return;
+        }
+
+        // Mostrar el texto y guardarlo cifrado en la bóveda (ya desbloqueada).
+        _gif.Stop();
+        _image.Source = null;
+        _text.Text = text;
+        _text.Visibility = Visibility.Visible;
+
+        string path = PrivateVault.Instance.Save(System.Text.Encoding.UTF8.GetBytes(text), ".txt");
+        Refresh();
+        _status.Text = $"Texto reconocido y guardado cifrado: {Path.GetFileName(path)}";
     }
 
     private void Export()

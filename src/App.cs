@@ -34,6 +34,7 @@ public static class Program
         app.Startup += (_, _) =>
         {
             Storage.EnsureDirs();
+            Theme.Apply(AppSettings.Load().Theme);
             var w = VaultViewerWindow.Open();
             if (w is null) { app.Shutdown(); return; }
             w.Closed += (_, _) => app.Shutdown();
@@ -58,6 +59,7 @@ public sealed class App : Application
         base.OnStartup(e);
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
         Storage.EnsureDirs();
+        Theme.Apply(AppSettings.Load().Theme);
 
         _tapTimer = new System.Windows.Threading.DispatcherTimer
         {
@@ -92,6 +94,7 @@ public sealed class App : Application
         });
         menu.Items.Add("Abrir carpeta Cutter", null, (_, _) =>
             System.Diagnostics.Process.Start("explorer.exe", Storage.Root));
+        menu.Items.Add("Configuración…", null, (_, _) => SettingsWindow.ShowSingleton());
         menu.Items.Add("Devolver Impr Pant a Windows", null, (_, _) =>
         {
             WindowsSettings.RestorePrintScreen();

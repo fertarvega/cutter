@@ -13,5 +13,7 @@ global using Clipboard = System.Windows.Clipboard;
 global using ListBox = System.Windows.Controls.ListBox;
 global using Brushes = System.Windows.Media.Brushes;
 global using Cursors = System.Windows.Input.Cursors;
+global using Control = System.Windows.Controls.Control;
+global using RadioButton = System.Windows.Controls.RadioButton;
 global using HAlign = System.Windows.HorizontalAlignment;
 global using VAlign = System.Windows.VerticalAlignment;

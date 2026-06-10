@@ -19,7 +19,11 @@ carpeta privada cifrada que se sincroniza a OneDrive.
   - **Guardar privada 🔒** → cifra la imagen/GIF (AES-256-GCM) en
     `Imágenes\Cutter\Privado`.
 - Icono en la bandeja con menú (capturar región, GIF, ver/bloquear bóveda,
-  abrir carpeta, devolver Impr Pant a Windows, salir). Doble clic = captura.
+  abrir carpeta, **Configuración**, devolver Impr Pant a Windows, salir).
+  Doble clic en el icono = abrir carpeta privada.
+- **Tema oscuro** por defecto (claro opcional en Configuración, se recuerda).
+- En el visor de la carpeta privada puedes hacer **OCR de una imagen guardada**
+  más tarde (botón "OCR → privado") y el texto se guarda cifrado.
 
 > El doble Impr Pant añade ~350 ms de espera a la captura simple (hace falta
 > para distinguir una pulsación de dos).
