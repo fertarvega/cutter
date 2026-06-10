@@ -4,14 +4,15 @@ using System.Windows.Threading;
 
 namespace Cutter;
 
-/// <summary>Graba frames de una región de pantalla a intervalos fijos.</summary>
+/// <summary>Graba fotogramas de una región a intervalos fijos, con marcas de tiempo reales.</summary>
 public sealed class GifRecorder
 {
-    public const int FrameDelayMs = 100; // ~10 fps
-    private const int MaxSeconds = 30;    // tope de seguridad
+    public const int FrameDelayMs = 80; // objetivo ~12.5 fps
+    private const int MaxSeconds = 30;   // tope de seguridad
 
     private readonly DispatcherTimer _timer;
     private readonly List<Bitmap> _frames = new();
+    private readonly List<int> _stampsMs = new();
     private Rectangle _area;
     private Stopwatch _watch = new();
 
@@ -28,7 +29,7 @@ public sealed class GifRecorder
 
     public void Start(Rectangle area)
     {
-        Stop();                 // limpia cualquier grabación previa
+        StopTimer();
         ClearFrames();
         _area = area;
         _watch = Stopwatch.StartNew();
@@ -40,22 +41,31 @@ public sealed class GifRecorder
     {
         if (_watch.Elapsed.TotalSeconds > MaxSeconds)
         {
-            _timer.Stop();
-            IsRecording = false;
+            StopTimer();
             return;
         }
         _frames.Add(ScreenCapture.Grab(_area));
+        _stampsMs.Add((int)_watch.ElapsedMilliseconds);
     }
 
-    /// <summary>Detiene y devuelve los frames capturados.</summary>
-    public IReadOnlyList<Bitmap> StopAndCollect()
+    /// <summary>Detiene y devuelve fotogramas + retardo real por fotograma (ms).</summary>
+    public (List<Bitmap> frames, List<int> delays) StopAndCollect()
     {
-        _timer.Stop();
-        IsRecording = false;
-        return _frames.ToList();
+        StopTimer();
+
+        var frames = _frames.ToList();
+        var delays = new List<int>(frames.Count);
+        for (int i = 0; i < frames.Count; i++)
+        {
+            int d = i < frames.Count - 1
+                ? _stampsMs[i + 1] - _stampsMs[i] // tiempo hasta el siguiente
+                : FrameDelayMs;                    // último: retardo nominal
+            delays.Add(Math.Clamp(d, 20, 1000));
+        }
+        return (frames, delays);
     }
 
-    private void Stop()
+    private void StopTimer()
     {
         _timer.Stop();
         IsRecording = false;
@@ -65,5 +75,6 @@ public sealed class GifRecorder
     {
         foreach (var f in _frames) f.Dispose();
         _frames.Clear();
+        _stampsMs.Clear();
     }
 }

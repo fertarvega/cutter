@@ -5,8 +5,12 @@ carpeta privada cifrada que se sincroniza a OneDrive.
 
 ## Qué hace
 
-- **Impr Pant** → captura el monitor donde está el cursor y abre una ventana.
-- **Ctrl + Impr Pant** → empieza/para la grabación de un **GIF** (máx 30 s).
+- **Impr Pant (una vez)** → abre un overlay para **arrastrar y seleccionar la
+  región** a capturar; luego abre la ventana de previsualización.
+- **Impr Pant (dos veces seguidas)** → empieza la grabación de un **GIF** de la
+  región que selecciones. **Doble Impr Pant otra vez** lo para (máx 30 s).
+  Mientras graba, aparece una insignia **● REC** junto a la región (fuera del
+  GIF). El GIF respeta los tiempos reales entre fotogramas y va en bucle.
 - La ventana de previsualización ofrece:
   - **Guardar** → PNG/GIF en `Imágenes\Cutter` (se sube a OneDrive).
   - **Copiar** → imagen al portapapeles.
@@ -14,8 +18,11 @@ carpeta privada cifrada que se sincroniza a OneDrive.
     guarda **cifrado** en la carpeta privada.
   - **Guardar privada 🔒** → cifra la imagen/GIF (AES-256-GCM) en
     `Imágenes\Cutter\Privado`.
-- Icono en la bandeja con menú (capturar, GIF, bloquear bóveda, abrir carpeta, salir).
-  Doble clic en el icono = captura.
+- Icono en la bandeja con menú (capturar región, GIF, ver/bloquear bóveda,
+  abrir carpeta, devolver Impr Pant a Windows, salir). Doble clic = captura.
+
+> El doble Impr Pant añade ~350 ms de espera a la captura simple (hace falta
+> para distinguir una pulsación de dos).
 
 ## Carpeta "con contraseña"
 
@@ -86,17 +93,14 @@ El ejecutable queda en `bin\Debug\net10.0-windows10.0.19041.0\Cutter.exe`.
 |---|---|
 | UI / app | C# .NET 10, WPF + WinForms (bandeja) |
 | OCR | `Windows.Media.Ocr` (offline, integrado en Windows) |
-| Hotkeys | `RegisterHotKey` (Win32) |
-| GIF | frames vía GDI+, ensamblado manual con bucle y retardo |
+| Hotkeys | Hook de teclado de bajo nivel `WH_KEYBOARD_LL` |
+| Región | Overlay WPF posicionado en píxeles físicos (`SetWindowPos`), DPI por monitor |
+| GIF | frames vía GDI+, ensamblado manual con bucle y retardo real por fotograma |
 | Cifrado | AES-256-GCM + PBKDF2-SHA256 |
 
 ## Limitaciones / siguientes pasos
 
-- La captura toma el **monitor completo** bajo el cursor. Falta un selector de
-  región (overlay arrastrable) — es la mejora principal pendiente.
-- El GIF graba a ~10 fps el monitor completo. Falta poder elegir región y fps.
-- Falta un visor para volver a abrir y descifrar archivos de la bóveda dentro
-  de la app (ahora se descifran con la lógica de `PrivateVault.Open`).
+- El GIF graba a ~12 fps. Falta poder elegir los fps.
 - **Impr Pant** se captura con un hook de teclado de bajo nivel, así que
   funciona aunque Windows 11 la tenga reservada para la Herramienta de recortes
   (Cutter la intercepta y suprime). Excepción: si la ventana en primer plano se

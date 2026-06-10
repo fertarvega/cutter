@@ -16,8 +16,8 @@ public sealed class KeyboardHook : IDisposable
     private readonly NativeMethods.LowLevelKeyboardProc _proc; // referencia para que no lo recoja el GC
     private IntPtr _hook;
 
-    public event Action? ScreenshotRequested;
-    public event Action? GifToggleRequested;
+    /// <summary>Se dispara una vez por cada pulsación de Impr Pant.</summary>
+    public event Action? PrintScreenPressed;
 
     public KeyboardHook()
     {
@@ -46,14 +46,11 @@ public sealed class KeyboardHook : IDisposable
 
             if (vk == (int)NativeMethods.VK_SNAPSHOT)
             {
-                bool ctrl = (NativeMethods.GetAsyncKeyState(NativeMethods.VK_CONTROL) & 0x8000) != 0;
-                Log.Write($"Impr Pant detectada (msg=0x{msg:X}, ctrl={ctrl}) -> suprimida.");
-
                 // Disparamos en KEYUP (Impr Pant suele no enviar KEYDOWN).
                 if (msg == NativeMethods.WM_KEYUP || msg == NativeMethods.WM_SYSKEYUP)
                 {
-                    if (ctrl) GifToggleRequested?.Invoke();
-                    else ScreenshotRequested?.Invoke();
+                    Log.Write("Impr Pant -> suprimida y notificada.");
+                    PrintScreenPressed?.Invoke();
                 }
 
                 // Suprimir tanto down como up para que no abra el recortes.

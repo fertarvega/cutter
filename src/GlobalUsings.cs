@@ -11,5 +11,7 @@ global using FontFamily = System.Windows.Media.FontFamily;
 global using Orientation = System.Windows.Controls.Orientation;
 global using Clipboard = System.Windows.Clipboard;
 global using ListBox = System.Windows.Controls.ListBox;
+global using Brushes = System.Windows.Media.Brushes;
+global using Cursors = System.Windows.Input.Cursors;
 global using HAlign = System.Windows.HorizontalAlignment;
 global using VAlign = System.Windows.VerticalAlignment;

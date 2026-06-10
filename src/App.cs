@@ -24,12 +24,23 @@ public sealed class App : Application
     private WinForms.NotifyIcon _tray = null!;
     private readonly GifRecorder _recorder = new();
     private readonly KeyboardHook _hook = new();
+    private RecIndicatorWindow? _recBadge;
+
+    // Detección de doble pulsación de Impr Pant.
+    private const int DoubleTapMs = 350;
+    private System.Windows.Threading.DispatcherTimer _tapTimer = null!;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
         Storage.EnsureDirs();
+
+        _tapTimer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(DoubleTapMs)
+        };
+        _tapTimer.Tick += (_, _) => { _tapTimer.Stop(); OnSingleTap(); };
 
         try { System.IO.File.Delete(Log.Path); } catch { }
         Log.Write($"Cutter iniciado. PID={Environment.ProcessId}, admin={IsAdmin()}.");
@@ -47,8 +58,8 @@ public sealed class App : Application
     private void SetupTray()
     {
         var menu = new WinForms.ContextMenuStrip();
-        menu.Items.Add("Capturar pantalla", null, (_, _) => DoScreenshot());
-        menu.Items.Add("Grabar / parar GIF", null, (_, _) => ToggleGif());
+        menu.Items.Add("Capturar pantalla (región)", null, (_, _) => DoScreenshot());
+        menu.Items.Add("Grabar / parar GIF (región)", null, (_, _) => ToggleGif());
         menu.Items.Add(new WinForms.ToolStripSeparator());
         menu.Items.Add("Ver carpeta privada 🔒", null, (_, _) => VaultViewerWindow.Open());
         menu.Items.Add("Bloquear carpeta privada", null, (_, _) =>
@@ -70,7 +81,7 @@ public sealed class App : Application
         {
             Icon = SystemIcons.Application,
             Visible = true,
-            Text = "Cutter — Impr Pant: captura · Ctrl+Impr Pant: GIF",
+            Text = "Cutter — Impr Pant: captura · doble Impr Pant: GIF",
             ContextMenuStrip = menu
         };
         _tray.DoubleClick += (_, _) => DoScreenshot();
@@ -78,10 +89,9 @@ public sealed class App : Application
 
     private void InstallHook()
     {
-        // El hook se dispara en el hilo de UI; diferimos el trabajo pesado con
-        // BeginInvoke para devolver el control al SO de inmediato.
-        _hook.ScreenshotRequested += () => Dispatcher.BeginInvoke(new Action(DoScreenshot));
-        _hook.GifToggleRequested += () => Dispatcher.BeginInvoke(new Action(ToggleGif));
+        // El hook se dispara en el hilo de UI; diferimos con BeginInvoke para
+        // devolver el control al SO de inmediato.
+        _hook.PrintScreenPressed += () => Dispatcher.BeginInvoke(new Action(OnPrintScreen));
         try
         {
             _hook.Install();
@@ -93,10 +103,38 @@ public sealed class App : Application
         }
     }
 
+    /// <summary>
+    /// Una pulsación de Impr Pant. Espera ~350 ms por una segunda:
+    ///   - sola  → captura de región.
+    ///   - doble → arranca/para la grabación de GIF.
+    /// </summary>
+    private void OnPrintScreen()
+    {
+        if (_tapTimer.IsEnabled)
+        {
+            _tapTimer.Stop();
+            OnDoubleTap();
+        }
+        else
+        {
+            _tapTimer.Start();
+        }
+    }
+
+    private void OnSingleTap()
+    {
+        if (_recorder.IsRecording) return; // grabando: solo el doble-tap para
+        DoScreenshot();
+    }
+
+    private void OnDoubleTap() => ToggleGif();
+
     private void DoScreenshot()
     {
-        var area = ScreenCapture.ActiveMonitorBounds();
-        using var bmp = ScreenCapture.Grab(area);
+        var region = RegionSelectWindow.Pick();
+        if (region is not { Width: > 0, Height: > 0 }) return;
+
+        using var bmp = ScreenCapture.Grab(region.Value);
         byte[] png = ScreenCapture.ToPng(bmp);
         var preview = ScreenCapture.ToBitmapSource(bmp);
         new PreviewWindow(preview, png, CaptureKind.Image).Show();
@@ -106,20 +144,27 @@ public sealed class App : Application
     {
         if (!_recorder.IsRecording)
         {
-            var area = ScreenCapture.ActiveMonitorBounds();
-            _recorder.Start(area);
-            Notify("Cutter", "Grabando GIF… pulsa Ctrl+Impr Pant para parar (máx 30 s).");
+            var region = RegionSelectWindow.Pick();
+            if (region is not { Width: > 0, Height: > 0 }) return;
+
+            _recorder.Start(region.Value);
+            _recBadge = new RecIndicatorWindow(region.Value);
+            _recBadge.Show();
+            Notify("Cutter", "Grabando GIF… doble Impr Pant para parar (máx 30 s).");
             return;
         }
 
-        var frames = _recorder.StopAndCollect();
+        var (frames, delays) = _recorder.StopAndCollect();
+        _recBadge?.Close();
+        _recBadge = null;
+
         if (frames.Count == 0)
         {
             Notify("Cutter", "GIF vacío (muy corto).");
             return;
         }
 
-        byte[] gif = GifBuilder.Build(frames, GifRecorder.FrameDelayMs);
+        byte[] gif = GifBuilder.Build(frames, delays);
         var preview = ScreenCapture.ToBitmapSource(frames[0]);
         new PreviewWindow(preview, gif, CaptureKind.Gif).Show();
 

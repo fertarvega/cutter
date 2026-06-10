@@ -16,12 +16,19 @@ namespace Cutter;
 /// </summary>
 public static class GifBuilder
 {
-    /// <param name="delayMs">Retardo entre frames en milisegundos.</param>
+    /// <summary>Retardo uniforme para todos los frames.</summary>
     public static byte[] Build(IReadOnlyList<Bitmap> frames, int delayMs)
+    {
+        var delays = new int[frames.Count];
+        Array.Fill(delays, delayMs);
+        return Build(frames, delays);
+    }
+
+    /// <param name="delaysMs">Retardo por frame en milisegundos (mismo tamaño que frames).</param>
+    public static byte[] Build(IReadOnlyList<Bitmap> frames, IReadOnlyList<int> delaysMs)
     {
         if (frames.Count == 0) throw new ArgumentException("Sin frames.");
 
-        ushort delayCs = (ushort)Math.Max(2, delayMs / 10); // GIF usa centisegundos
         ushort width = (ushort)frames[0].Width;
         ushort height = (ushort)frames[0].Height;
 
@@ -40,9 +47,10 @@ public static class GifBuilder
         ms.Write("NETSCAPE2.0"u8);
         ms.Write([0x03, 0x01, 0x00, 0x00, 0x00]);
 
-        foreach (var frame in frames)
+        for (int i = 0; i < frames.Count; i++)
         {
-            var f = ParseSingleFrameGif(EncodeSingleGif(frame));
+            var f = ParseSingleFrameGif(EncodeSingleGif(frames[i]));
+            ushort delayCs = (ushort)Math.Max(2, delaysMs[i] / 10); // GIF usa centisegundos
 
             // Graphic Control Extension (retardo, sin transparencia, no descartar)
             ms.Write([(byte)0x21, (byte)0xF9, (byte)0x04, (byte)0x04]);
