@@ -61,7 +61,9 @@ public sealed class RegionSelectWindow : Window
         MouseLeftButtonDown += OnDown;
         MouseMove += OnMove;
         MouseLeftButtonUp += OnUp;
-        KeyDown += (_, e) => { if (e.Key == Key.Escape) Cancel(); };
+        // PreviewKeyDown se dispara aunque el foco de teclado esté en un hijo.
+        PreviewKeyDown += (_, e) => { if (e.Key == Key.Escape) { e.Handled = true; Cancel(); } };
+        MouseRightButtonUp += (_, _) => Cancel(); // cancelar también con clic derecho
         SourceInitialized += OnSourceInitialized;
     }
 
@@ -81,6 +83,7 @@ public sealed class RegionSelectWindow : Window
             NativeMethods.SWP_SHOWWINDOW);
         Activate();
         Focus();
+        Keyboard.Focus(this); // asegurar foco de teclado para que Esc llegue
     }
 
     private void Cancel()
