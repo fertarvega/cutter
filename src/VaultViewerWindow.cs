@@ -73,6 +73,7 @@ public sealed class MediaViewerWindow : Window
             HorizontalAlignment = HAlign.Right,
             Margin = new Thickness(0, 10, 0, 0)
         };
+        bar.Children.Add(MakeButton("Refrescar", (_, _) => Refresh()));
         bar.Children.Add(MakeButton("Abrir con app del sistema", (_, _) => OpenExternal()));
         bar.Children.Add(MakeButton("OCR → texto", (_, _) => RunOcr()));
         if (_store.CanExport)
